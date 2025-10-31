@@ -4,8 +4,8 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home/Home'
 import Games from './pages/Games/Games'
 import About from './pages/About/About'
-import PhysicsSandbox from './pages/Projects/PhysicsSandbox/PhysicsSandbox'
-import MazeGame from './pages/Projects/MazeGame/MazeGame'
+import PhysicsSandbox from './projects/PhysicsSandbox/PhysicsSandbox'
+import MazeGame from './projects/MazeGame/MazeGame'
 
 function App() {
   return (
