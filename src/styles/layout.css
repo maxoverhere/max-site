@@ -1,0 +1,33 @@
+.page {
+  max-width: 1200px;
+  padding: 32px 24px;
+  margin: 0 auto;
+  min-height: calc(100vh - 70px);
+}
+
+.section {
+  padding: 32px 0;
+}
+
+.section-lg {
+  padding: 60px 0;
+}
+
+.hero {
+  padding: 60px 0;
+}
+
+.hero--center {
+  text-align: center;
+}
+
+.hero__title {
+  margin: 0 0 16px;
+}
+
+.hero__subtitle {
+  margin: 0 auto;
+  max-width: 700px;
+  opacity: 0.85;
+}
+

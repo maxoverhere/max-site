@@ -1,0 +1,33 @@
+Project: max-site (/Users/maxhunter/Projects/max-site)
+Purpose: A fun, stylish project by Max to showcase tools and games. Deployed on GCP Firebase (Hosting).
+
+Stack
+- React 19 + React Router 7 (`react-router-dom`)
+- Vite (+ `@vitejs/plugin-react`)
+- ESLint 9
+
+Routes
+- `/` Home
+- `/games` Games
+- `/about` About
+- `/projects/physics` PhysicsSandbox (canvas)
+- `/projects/maze` MazeGame (canvas)
+
+Conventions
+- Each route lives in its own folder under `src/pages` with component, CSS, and helpers co-located to keep game logic isolated per page.
+- Global/shared CSS lives in `src/styles/`:
+  - `base.css` (defaults), `layout.css` (containers/hero), `components.css` (UI primitives), `typography.css` (text utilities)
+- Component-specific CSS stays co-located (e.g., `src/components/navbar.css`)
+- Prefer using shared classes from `src/styles` before adding new CSS
+- Keep `.page` container; Navbar spans full width with centered inner content
+- Use absolute paths in explanations/tooling; do not edit `dist/`
+- Do not add comments unless they convey meaningful, non-obvious intent or critical context.
+
+Build/Preview/Deploy
+- `npm run dev` — dev server
+- `npm run build` — outputs to `dist/`
+- `npm run preview` — preview build
+- Firebase Hosting: `public: dist`, SPA rewrite to `/index.html`; deploy via `firebase deploy`
+
+Assistant
+- Be concise; only necessary fenced code
