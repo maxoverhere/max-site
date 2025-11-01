@@ -1,0 +1,103 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.navbar__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.navbar__brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s;
+}
+
+.navbar__brand:hover {
+  opacity: 0.8;
+}
+
+.navbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav__link {
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.nav__link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav__link.active {
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 500;
+}
+
+.nav__dropdown {
+  position: relative;
+}
+
+.nav__dropdown > .nav__link {
+  cursor: pointer;
+}
+
+.nav__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  display: none;
+  min-width: 180px;
+  background: rgba(24, 24, 24, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.nav__dropdown:hover .nav__menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav__menu-item {
+  padding: 10px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.nav__menu-item.active {
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 500;
+}
+
+.nav__menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+

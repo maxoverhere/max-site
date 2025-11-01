@@ -1,0 +1,27 @@
+html {
+  scroll-behavior: smooth;
+}
+
+a {
+  transition: all 0.2s ease;
+}
+
+h1, h2, h3 {
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+p {
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
