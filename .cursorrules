@@ -20,7 +20,6 @@ Conventions
 - Component-specific CSS stays co-located (e.g., `src/components/navbar.css`)
 - Prefer using shared classes from `src/styles` before adding new CSS
 - Keep `.page` container; Navbar spans full width with centered inner content
-- Use absolute paths in explanations/tooling; do not edit `dist/`
 - Do not add comments unless they convey meaningful, non-obvious intent or critical context.
 
 Build/Preview/Deploy

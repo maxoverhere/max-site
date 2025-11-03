@@ -1,16 +1,42 @@
-# React + Vite
+# max-site
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Fun, stylish site by Max to showcase tools and games. Built with React + Vite, deployed on Firebase Hosting.
 
-Currently, two official plugins are available:
+## Stack
+- React 19, React Router 7
+- Vite (+ @vitejs/plugin-react)
+- ESLint 9
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Routes
+- `/` Home
+- `/games` Games
+- `/about` About
+- `/projects/physics` PhysicsSandbox (canvas)
+- `/projects/maze` MazeGame (canvas)
 
-## React Compiler
+## Development
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Build
+```bash
+npm run build
+npm run preview
+```
 
-## Expanding the ESLint configuration
+## Deploy (Firebase Hosting)
+- Ensure a fresh build: `npm run build`
+- Deploy: `firebase deploy`
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Firebase config expects `public: dist` and SPA rewrite to `/index.html`.
+
+## Project Structure
+- `src/components/` — app components (e.g., `Navbar.jsx`, `navbar.css`)
+- `src/pages/` — route pages (each page in its own folder)
+- `src/projects/` — game/project implementations (canvas + logic + CSS)
+- `src/styles/` — global CSS
+  - `base.css` (defaults), `layout.css` (containers/hero), `components.css` (UI primitives), `typography.css` (text utilities)
+
+Conventions: keep page/game code compartmentalized; prefer shared classes from `src/styles` before adding new CSS; avoid comments unless they add meaningful, non-obvious context.
