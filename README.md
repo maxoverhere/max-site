@@ -10,9 +10,11 @@ Fun, stylish site by Max to showcase tools and games. Built with React + Vite, d
 ## Routes
 - `/` Home
 - `/games` Games
+- `/tools` Tools (List Tool: sort + diff)
 - `/about` About
 - `/projects/physics` PhysicsSandbox (canvas)
 - `/projects/maze` MazeGame (canvas)
+- `/projects/list-tool` List Tool (compare/sort lists)
 
 ## Development
 ```bash

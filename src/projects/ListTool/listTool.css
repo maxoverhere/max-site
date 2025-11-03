@@ -1,0 +1,54 @@
+.tool-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.tools-col__header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.tools-textarea {
+  width: 100%;
+  min-height: 360px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  padding: 12px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.diff-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.diff-line {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diff-line:last-child {
+  border-bottom: none;
+}
+
+.diff-line.missing {
+  background: rgba(255, 0, 0, 0.18);
+}
+
+
