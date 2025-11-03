@@ -11,14 +11,6 @@ function Navbar() {
           <NavLink to="/games" className={({ isActive }) => isActive ? 'nav__link active' : 'nav__link'}>Games</NavLink>
           <NavLink to="/tools" className={({ isActive }) => isActive ? 'nav__link active' : 'nav__link'}>Tools</NavLink>
           <NavLink to="/about" className={({ isActive }) => isActive ? 'nav__link active' : 'nav__link'}>About</NavLink>
-          <div className="nav__dropdown">
-            <span className="nav__link">Projects ▾</span>
-            <div className="nav__menu">
-              <NavLink to="/projects/physics" className={({ isActive }) => isActive ? 'nav__menu-item active' : 'nav__menu-item'}>Physics Sandbox</NavLink>
-              <NavLink to="/projects/maze" className={({ isActive }) => isActive ? 'nav__menu-item active' : 'nav__menu-item'}>Maze Game</NavLink>
-              <NavLink to="/projects/list-tool" className={({ isActive }) => isActive ? 'nav__menu-item active' : 'nav__menu-item'}>List Tool</NavLink>
-            </div>
-          </div>
         </nav>
       </div>
     </header>
