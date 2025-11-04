@@ -31,3 +31,43 @@
   opacity: 0.85;
 }
 
+@media (max-width: 768px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .section {
+    padding: 24px 0;
+  }
+
+  .section-lg {
+    padding: 40px 0;
+  }
+
+  .hero {
+    padding: 40px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 16px 12px;
+  }
+
+  .section {
+    padding: 16px 0;
+  }
+
+  .section-lg {
+    padding: 32px 0;
+  }
+
+  .hero {
+    padding: 32px 0;
+  }
+
+  .hero__subtitle {
+    max-width: 100%;
+  }
+}
+
