@@ -1,0 +1,27 @@
+.pdf-actions {
+  margin-top: 10px;
+}
+
+.pdf-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.pdf-range {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+}
+
+@media (max-width: 480px) {
+  .pdf-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+

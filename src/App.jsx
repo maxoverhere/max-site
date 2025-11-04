@@ -8,6 +8,7 @@ import Tools from './pages/Tools/Tools'
 import PhysicsSandbox from './projects/PhysicsSandbox/PhysicsSandbox'
 import MazeGame from './projects/MazeGame/MazeGame'
 import ListTool from './projects/ListTool/ListTool'
+import PdfTool from './projects/PdfTool/PdfTool'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/projects/physics" element={<PhysicsSandbox />} />
         <Route path="/projects/maze" element={<MazeGame />} />
         <Route path="/projects/list-tool" element={<ListTool />} />
+        <Route path="/projects/pdf-tool" element={<PdfTool />} />
       </Routes>
     </Router>
   )
