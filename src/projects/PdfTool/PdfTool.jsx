@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { PDFDocument } from 'pdf-lib'
 import './pdfTool.css'
 
 async function readFileAsArrayBuffer(file) {
@@ -7,6 +6,7 @@ async function readFileAsArrayBuffer(file) {
 }
 
 async function mergePdfs(files) {
+  const { PDFDocument } = await import('pdf-lib')
   const mergedPdf = await PDFDocument.create()
   for (const file of files) {
     const bytes = await readFileAsArrayBuffer(file)
@@ -19,6 +19,7 @@ async function mergePdfs(files) {
 }
 
 async function extractRange(file, range) {
+  const { PDFDocument } = await import('pdf-lib')
   const [startStr, endStr] = range.split('-').map((s) => s.trim())
   const start = Math.max(1, parseInt(startStr || '1', 10))
   const end = parseInt(endStr || startStr, 10)
@@ -85,7 +86,7 @@ function PdfTool() {
 
   return (
     <main className="page">
-      <h2>PDF Tool</h2>
+      <h2>PDF Merge & Split</h2>
       {error && <p className="muted" style={{ color: '#ff6b6b' }}>{error}</p>}
 
       <section className="section">
