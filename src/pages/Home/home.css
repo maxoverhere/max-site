@@ -1,43 +1,130 @@
 .hero-floating {
-  position: relative;
-  width: 100%;
-  height: 400px;
-  margin-bottom: 40px;
-  overflow: hidden;
-}
-
-.floating-pear {
-  position: absolute;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
-  animation: float 20s infinite ease-in-out;
+  z-index: -1;
+  overflow: visible;
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate(20px, -30px) rotate(5deg);
-  }
-  50% {
-    transform: translate(-15px, -20px) rotate(-5deg);
-  }
-  75% {
-    transform: translate(10px, -40px) rotate(3deg);
-  }
+.flung-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.flung-asset {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  transform: rotate(var(--rotation));
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.dragged-asset {
+  position: fixed;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1000;
+  cursor: grabbing;
+  will-change: transform;
+}
+
+.banner-container {
+  position: fixed;
+  bottom: 80px;
+  left: 0;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  z-index: 10;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.1), transparent);
+  pointer-events: none;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  height: 100%;
+  transform: translateX(var(--offset));
+  will-change: transform;
+  pointer-events: auto;
+}
+
+.banner-slot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size);
+  height: var(--size);
+}
+
+.banner-asset {
+  flex-shrink: 0;
+  width: var(--size);
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.1s ease;
+}
+
+.banner-asset:active {
+  cursor: grabbing;
+  transform: scale(1.1);
 }
 
 @media (max-width: 768px) {
-  .hero-floating {
-    height: 250px;
-    margin-bottom: 30px;
+  .banner-container {
+    bottom: 60px;
+    height: 120px;
+  }
+
+  .banner-asset {
+    width: 60px !important;
+  }
+
+  .banner-slot {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .flung-asset,
+  .dragged-asset {
+    width: 60px !important;
   }
 }
 
 @media (max-width: 480px) {
-  .hero-floating {
-    height: 200px;
-    margin-bottom: 20px;
+  .banner-container {
+    bottom: 50px;
+    height: 100px;
+  }
+
+  .banner-asset {
+    width: 50px !important;
+  }
+
+  .banner-slot {
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .flung-asset,
+  .dragged-asset {
+    width: 50px !important;
   }
 }
-
