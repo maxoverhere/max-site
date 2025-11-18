@@ -9,7 +9,7 @@
   overflow: visible;
 }
 
-.flung-container {
+.flung-layer {
   position: fixed;
   top: 0;
   left: 0;
@@ -22,10 +22,6 @@
 
 .flung-asset {
   position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: var(--size);
-  transform: rotate(var(--rotation));
   pointer-events: none;
   user-select: none;
   will-change: transform;
@@ -33,9 +29,6 @@
 
 .dragged-asset {
   position: fixed;
-  left: var(--x);
-  top: var(--y);
-  width: var(--size);
   pointer-events: none;
   user-select: none;
   z-index: 1000;
@@ -43,7 +36,7 @@
   will-change: transform;
 }
 
-.banner-container {
+.banner-viewport {
   position: fixed;
   bottom: 80px;
   left: 0;
@@ -55,12 +48,10 @@
   pointer-events: none;
 }
 
-.banner {
+.banner-track {
   display: flex;
   align-items: center;
-  gap: 40px;
   height: 100%;
-  transform: translateX(var(--offset));
   will-change: transform;
   pointer-events: auto;
 }
@@ -70,13 +61,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--size);
-  height: var(--size);
+  height: 100%;
+}
+
+.banner-slot.empty {
+  opacity: 0.3;
 }
 
 .banner-asset {
   flex-shrink: 0;
-  width: var(--size);
   cursor: grab;
   user-select: none;
   transition: transform 0.1s ease;
@@ -88,43 +81,15 @@
 }
 
 @media (max-width: 768px) {
-  .banner-container {
+  .banner-viewport {
     bottom: 60px;
     height: 120px;
-  }
-
-  .banner-asset {
-    width: 60px !important;
-  }
-
-  .banner-slot {
-    width: 60px !important;
-    height: 60px !important;
-  }
-
-  .flung-asset,
-  .dragged-asset {
-    width: 60px !important;
   }
 }
 
 @media (max-width: 480px) {
-  .banner-container {
+  .banner-viewport {
     bottom: 50px;
     height: 100px;
-  }
-
-  .banner-asset {
-    width: 50px !important;
-  }
-
-  .banner-slot {
-    width: 50px !important;
-    height: 50px !important;
-  }
-
-  .flung-asset,
-  .dragged-asset {
-    width: 50px !important;
   }
 }

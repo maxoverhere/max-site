@@ -1,379 +1,286 @@
- 
-import { useState, useEffect, useRef } from 'react'
-import pearImage from '../../assets/images/Pear.png'
-import shoeImage from '../../assets/images/shoe.png'
-import motorbikeImage from '../../assets/images/Motorbike.png'
-import './home.css'
+import React, { useEffect, useRef, useState } from "react";
+import pearImage from "../../assets/images/Pear.png";
+import shoeImage from "../../assets/images/shoe.png";
+import motorbikeImage from "../../assets/images/Motorbike.png";
+import "./home.css";
 
-const assets = [pearImage, shoeImage, motorbikeImage]
+const ASSETS = [pearImage, shoeImage, motorbikeImage];
+const GAP = 24; // px space between slots
+const BASE_SIZE = 80; // base item size
+const SPEED = 0.6; // px per frame (adjust for overall scroll speed)
+const GRAVITY = 0.15; // px per frame^2 for flung items
 
-function Home() {
-  const [bannerItems, setBannerItems] = useState([])
-  const [flungItems, setFlungItems] = useState([])
-  const [bannerOffset, setBannerOffset] = useState(0)
-  const [draggedItem, setDraggedItem] = useState(null)
-  const [draggedItemKey, setDraggedItemKey] = useState(null)
-  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 })
-  const [velocity, setVelocity] = useState({ x: 0, y: 0 })
-  const lastPosRef = useRef({ x: 0, y: 0 })
-  const timeRef = useRef(Date.now())
-  const bannerRef = useRef(null)
-  const animationFrameRef = useRef(null)
-  const flungRefs = useRef(new Map())
-  const draggedRef = useRef(null)
-  const bannerInnerRef = useRef(null)
-  const bannerSlotRefs = useRef(new Map())
-  const bannerOffsetRef = useRef(0)
-  const itemUpdateCounterRef = useRef(0)
-  const startTimeRef = useRef(Date.now())
-  const scrollSpeedRef = useRef(50)
-
-  useEffect(() => {
-    const count = 9
-    const newItems = Array.from({ length: count }, (_, i) => ({
-      id: `banner-${i}`,
-      image: assets[i % assets.length],
-      size: 80 + Math.random() * 40,
+function makeInitialItems(containerWidth = typeof window !== "undefined" ? window.innerWidth : 1200) {
+  // deterministic-ish sizes (no wild randomness)
+  const items = [];
+  let x = 0;
+  let idx = 0;
+  while (x < containerWidth + 300) {
+    const size = BASE_SIZE + (idx % 3) * 8; // small size variation
+    items.push({
+      id: `item-${idx}`,
+      image: ASSETS[idx % ASSETS.length],
+      size,
       empty: false,
-    }))
-    setBannerItems(newItems)
-    startTimeRef.current = Date.now()
-  }, [])
-
-  useEffect(() => {
-    const animate = () => {
-      const now = Date.now()
-      const elapsed = (now - startTimeRef.current) / 1000
-      bannerOffsetRef.current = -elapsed * scrollSpeedRef.current
-      
-      if (bannerInnerRef.current) {
-        bannerInnerRef.current.style.setProperty('--offset', `${bannerOffsetRef.current}px`)
-      }
-
-      itemUpdateCounterRef.current++
-      
-      if (itemUpdateCounterRef.current >= 5) {
-        itemUpdateCounterRef.current = 0
-        
-        setBannerItems((prev) => {
-          const gap = 40
-          let currentX = 0
-          const itemsToRemove = []
-
-          prev.forEach((item) => {
-            const itemWidth = item.size + gap
-            const itemRight = currentX + bannerOffsetRef.current + item.size
-
-            if (itemRight < -100) {
-              itemsToRemove.push(item.id)
-            }
-            currentX += itemWidth
-          })
-
-          const remainingItems = prev.filter((item) => !itemsToRemove.includes(item.id))
-          
-          let totalX = 0
-          remainingItems.forEach((item) => {
-            totalX += item.size + gap
-          })
-          if (totalX > 0) {
-            totalX -= gap
-          }
-
-          const newItems = []
-          const lastItemRight = totalX + bannerOffsetRef.current
-          if (lastItemRight < window.innerWidth + 300) {
-            const newItem = {
-              id: `banner-${Date.now()}-${Math.random()}`,
-              image: assets[Math.floor(Math.random() * assets.length)],
-              size: 80 + Math.random() * 40,
-              empty: false,
-            }
-            newItems.push(newItem)
-          }
-
-          return remainingItems.concat(newItems)
-        })
-      }
-
-      setFlungItems((prev) =>
-        prev.map((item) => {
-          const vx = item.vx * 0.98
-          const vy = item.vy + 0.5
-          const rx = item.rx + item.rotationSpeed
-          const x = item.x + vx
-          const y = item.y + vy
-
-          if (x < -100 || x > window.innerWidth + 100 || y > window.innerHeight + 100) {
-            return null
-          }
-
-          return { ...item, x, y, vx, vy, rx }
-        }).filter(Boolean)
-      )
-
-      animationFrameRef.current = requestAnimationFrame(animate)
-    }
-
-    animationFrameRef.current = requestAnimationFrame(animate)
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current)
-      }
-    }
-  }, [bannerItems])
-
-  useEffect(() => {
-    flungItems.forEach((item) => {
-      const el = flungRefs.current.get(item.id)
-      if (el) {
-        el.style.setProperty('--x', `${item.x}px`)
-        el.style.setProperty('--y', `${item.y}px`)
-        el.style.setProperty('--size', `${item.size}px`)
-        el.style.setProperty('--rotation', `${item.rx}deg`)
-      }
-    })
-  }, [flungItems])
-
-  useEffect(() => {
-    if (draggedItem && draggedRef.current) {
-      draggedRef.current.style.setProperty('--x', `${dragPosition.x - draggedItem.size / 2}px`)
-      draggedRef.current.style.setProperty('--y', `${dragPosition.y - draggedItem.size / 2}px`)
-      draggedRef.current.style.setProperty('--size', `${draggedItem.size}px`)
-    }
-  }, [draggedItem, dragPosition])
-
-
-  useEffect(() => {
-    bannerItems.forEach((item) => {
-      const slotRefs = bannerSlotRefs.current.get(item.id)
-      if (slotRefs) {
-        slotRefs.slot.style.setProperty('--size', `${item.size}px`)
-        if (slotRefs.asset) {
-          slotRefs.asset.style.setProperty('--size', `${item.size}px`)
-        }
-      }
-      const dupSlotRefs = bannerSlotRefs.current.get(`${item.id}-dup`)
-      if (dupSlotRefs) {
-        dupSlotRefs.slot.style.setProperty('--size', `${item.size}px`)
-        if (dupSlotRefs.asset) {
-          dupSlotRefs.asset.style.setProperty('--size', `${item.size}px`)
-        }
-      }
-    })
-  }, [bannerItems])
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!draggedItem) return
-
-      const clientX = e.clientX
-      const clientY = e.clientY
-      const now = Date.now()
-      const dt = Math.max(1, now - timeRef.current)
-
-      const vx = (clientX - lastPosRef.current.x) / dt * 16
-      const vy = (clientY - lastPosRef.current.y) / dt * 16
-
-      setDragPosition({ x: clientX, y: clientY })
-      setVelocity({ x: vx, y: vy })
-      lastPosRef.current = { x: clientX, y: clientY }
-      timeRef.current = now
-    }
-
-    const handleMouseUp = (e) => {
-      if (!draggedItem) return
-
-      const clientX = e.clientX
-      const clientY = e.clientY
-
-      if (clientY < window.innerHeight - 200) {
-        setFlungItems((prev) => [
-          ...prev,
-          {
-            ...draggedItem,
-            id: `flung-${Date.now()}-${Math.random()}`,
-            x: clientX,
-            y: clientY,
-            vx: velocity.x * 2,
-            vy: velocity.y * 2,
-            rx: 0,
-            rotationSpeed: (Math.random() - 0.5) * 0.2,
-          },
-        ])
-
-        if (draggedItemKey && draggedItem) {
-          setBannerItems((prev) =>
-            prev.map((item) => {
-              if (item.id === draggedItem.id) {
-                return { ...item, empty: true }
-              }
-              return item
-            })
-          )
-        }
-      }
-
-      setDraggedItem(null)
-      setDraggedItemKey(null)
-      setVelocity({ x: 0, y: 0 })
-    }
-
-    const handleTouchMove = (e) => {
-      if (!draggedItem) return
-      e.preventDefault()
-
-      const clientX = e.touches[0].clientX
-      const clientY = e.touches[0].clientY
-      const now = Date.now()
-      const dt = Math.max(1, now - timeRef.current)
-
-      const vx = (clientX - lastPosRef.current.x) / dt * 16
-      const vy = (clientY - lastPosRef.current.y) / dt * 16
-
-      setDragPosition({ x: clientX, y: clientY })
-      setVelocity({ x: vx, y: vy })
-      lastPosRef.current = { x: clientX, y: clientY }
-      timeRef.current = now
-    }
-
-    const handleTouchEnd = (e) => {
-      if (!draggedItem) return
-
-      const clientX = e.changedTouches[0].clientX
-      const clientY = e.changedTouches[0].clientY
-
-      if (clientY < window.innerHeight - 200) {
-        setFlungItems((prev) => [
-          ...prev,
-          {
-            ...draggedItem,
-            id: `flung-${Date.now()}-${Math.random()}`,
-            x: clientX,
-            y: clientY,
-            vx: velocity.x * 2,
-            vy: velocity.y * 2,
-            rx: 0,
-            rotationSpeed: (Math.random() - 0.5) * 0.2,
-          },
-        ])
-
-        if (draggedItemKey && draggedItem) {
-          setBannerItems((prev) =>
-            prev.map((item) => {
-              if (item.id === draggedItem.id) {
-                return { ...item, empty: true }
-              }
-              return item
-            })
-          )
-        }
-      }
-
-      setDraggedItem(null)
-      setDraggedItemKey(null)
-      setVelocity({ x: 0, y: 0 })
-    }
-
-    if (draggedItem) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      document.addEventListener('touchmove', handleTouchMove, { passive: false })
-      document.addEventListener('touchend', handleTouchEnd)
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.removeEventListener('touchmove', handleTouchMove)
-      document.removeEventListener('touchend', handleTouchEnd)
-    }
-  }, [draggedItem, velocity])
-
-  const handleDragStart = (e, item, itemKey) => {
-    e.preventDefault()
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
-    
-    setDraggedItem(item)
-    setDraggedItemKey(itemKey)
-    setDragPosition({ x: clientX, y: clientY })
-    lastPosRef.current = { x: clientX, y: clientY }
-    timeRef.current = Date.now()
-    setVelocity({ x: 0, y: 0 })
+    });
+    x += size + GAP;
+    idx += 1;
+    // cap just in case
+    if (idx > 40) break;
   }
+  return items;
+}
+
+export default function Home() {
+  const [items, setItems] = useState(() => makeInitialItems());
+  const [flung, setFlung] = useState([]); // { id, image, size, x, y, vx, vy }
+  const [dragging, setDragging] = useState(null); // { id, image, size }
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+
+  const offsetRef = useRef(0); // translateX offset (positive -> content moved left)
+  const rafRef = useRef(null);
+  const lastMouseRef = useRef({ x: 0, y: 0, t: 0 });
+  const trackRef = useRef(null);
+  const itemsRef = useRef(items);
+  const itemCounterRef = useRef(items.length);
+
+  // keep itemsRef in sync with items state
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  // helper: compute width of a slot (size + gap)
+  const slotWidth = (size) => size + GAP;
+
+  // --- ticker animation (infinite loop) ---
+  useEffect(() => {
+    function step() {
+      offsetRef.current += SPEED;
+
+      const currentItems = itemsRef.current;
+      
+      // Remove items that have scrolled off the left side
+      let removedWidth = 0;
+      let currentX = 0;
+      const itemsToRemove = [];
+
+      currentItems.forEach((item) => {
+        const itemWidth = slotWidth(item.size);
+        const itemRight = currentX + offsetRef.current + item.size;
+
+        if (itemRight < -100) {
+          itemsToRemove.push(item.id);
+          removedWidth += itemWidth;
+        }
+        currentX += itemWidth;
+      });
+
+      // Remove off-screen items and adjust offset
+      if (itemsToRemove.length > 0) {
+        offsetRef.current -= removedWidth;
+        setItems((prev) => {
+          const filtered = prev.filter((it) => !itemsToRemove.includes(it.id));
+          itemsRef.current = filtered;
+          return filtered;
+        });
+      }
+
+      // Calculate total width of remaining items
+      const remainingItems = itemsRef.current;
+      let totalWidth = 0;
+      remainingItems.forEach((item) => {
+        totalWidth += slotWidth(item.size);
+      });
+
+      // Add new items if needed to fill the screen
+      const lastItemRight = totalWidth + offsetRef.current;
+      if (lastItemRight < window.innerWidth + 300) {
+        const counter = itemCounterRef.current++;
+        const newItem = {
+          id: `item-${counter}`,
+          image: ASSETS[counter % ASSETS.length],
+          size: BASE_SIZE + (counter % 3) * 8,
+          empty: false,
+        };
+        setItems((prev) => {
+          const updated = [...prev, newItem];
+          itemsRef.current = updated;
+          return updated;
+        });
+      }
+
+      // apply the transform
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translateX(${-offsetRef.current}px)`;
+      }
+
+      // update flung physics
+      setFlung((prev) =>
+        prev
+          .map((f) => {
+          
+            const newVy = f.vy + GRAVITY;
+            const nx = f.x + f.vx;
+            const ny = f.y + newVy;
+            return { ...f, x: nx, y: ny, vx: newVx, vy: newVy };
+          })
+          .filter(
+            (f) =>
+              !(f.y > window.innerHeight + 200 || f.x < -200 || f.x > window.innerWidth + 200)
+          )
+      );
+
+      rafRef.current = requestAnimationFrame(step);
+    }
+
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  // --- pointer handling for drag / fling ---
+  useEffect(() => {
+    function onPointerMove(e) {
+      if (!dragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const now = performance.now();
+      lastMouseRef.current = { x: clientX, y: clientY, t: now };
+      setDragPos({ x: clientX, y: clientY });
+    }
+
+    function onPointerUp(e) {
+      if (!dragging) return;
+      const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+      const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      const now = performance.now();
+      const last = lastMouseRef.current;
+      const dt = Math.max(1, now - (last.t || now));
+      // Calculate velocity in pixels per frame (assuming ~60fps, so dt is in ms)
+      const vx = ((clientX - (last.x || clientX)) / dt) * (1000 / 60);
+      const vy = ((clientY - (last.y || clientY)) / dt) * (1000 / 60);
+
+      // spawn flung item using pointer pos and velocity
+      const flingItem = {
+        id: `flung-${Date.now()}`,
+        image: dragging.image,
+        size: dragging.size,
+        x: clientX,
+        y: clientY,
+        vx: vx * 1.6,
+        vy: vy * 1.2,
+      };
+      setFlung((prev) => [...prev, flingItem]);
+
+      setDragging(null);
+      setDragPos({ x: 0, y: 0 });
+    }
+
+    window.addEventListener("mousemove", onPointerMove);
+    window.addEventListener("mouseup", onPointerUp);
+    window.addEventListener("touchmove", onPointerMove, { passive: false });
+    window.addEventListener("touchend", onPointerUp);
+
+    return () => {
+      window.removeEventListener("mousemove", onPointerMove);
+      window.removeEventListener("mouseup", onPointerUp);
+      window.removeEventListener("touchmove", onPointerMove);
+      window.removeEventListener("touchend", onPointerUp);
+    };
+  }, [dragging]);
+
+  // start dragging
+  const handleDragStart = (e, item) => {
+    e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    lastMouseRef.current = { x: clientX, y: clientY, t: performance.now() };
+    setDragging(item);
+    setDragPos({ x: clientX, y: clientY });
+    // immediately mark the slot as empty
+    setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, empty: true } : it)));
+  };
+
+  // simple reset: if you want to repopulate removed slots you could implement that here
+  const refillIfAllEmpty = () => {
+    const haveAnyNonEmpty = items.some((it) => !it.empty);
+    if (!haveAnyNonEmpty) {
+      // reset deterministic items
+      setItems(makeInitialItems());
+    }
+  };
+
+  useEffect(() => {
+    refillIfAllEmpty();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   return (
     <main className="page page--home">
       <section className="hero hero--center">
         <h1 className="hero__title">Welcome to max-site</h1>
-        <p className="hero__subtitle lead">Play with ideas, games, and projects — all in one place.</p>
-        
-        <div className="flung-container">
-          {flungItems.map((item) => (
+        <p className="hero__subtitle lead">
+          Play with ideas, games, and projects — all in one place.
+        </p>
+
+        {/* flung floating assets */}
+        <div className="flung-layer">
+          {flung.map((f) => (
             <img
-              key={item.id}
-              ref={(el) => {
-                if (el) {
-                  flungRefs.current.set(item.id, el)
-                } else {
-                  flungRefs.current.delete(item.id)
-                }
-              }}
-              src={item.image}
+              key={f.id}
+              src={f.image}
               alt=""
               className="flung-asset"
+              style={{
+                width: `${f.size}px`,
+                height: `${f.size}px`,
+                left: `${f.x - f.size / 2}px`,
+                top: `${f.y - f.size / 2}px`,
+              }}
             />
           ))}
         </div>
 
-        {draggedItem && (
+        {/* dragged image (follows cursor) */}
+        {dragging && (
           <img
-            ref={draggedRef}
-            src={draggedItem.image}
+            src={dragging.image}
             alt=""
             className="dragged-asset"
+            style={{
+              width: `${dragging.size}px`,
+              height: `${dragging.size}px`,
+              left: `${dragPos.x - dragging.size / 2}px`,
+              top: `${dragPos.y - dragging.size / 2}px`,
+            }}
           />
         )}
 
-        <div className="banner-container" ref={bannerRef}>
-          <div className="banner" ref={bannerInnerRef}>
-            {bannerItems.map((item, index) => (
+        {/* ticker */}
+        <div className="banner-viewport">
+          <div className="banner-track" ref={trackRef}>
+            {items.map((it) => (
               <div
-                key={item.id}
-                ref={(el) => {
-                  if (el) {
-                    const existing = bannerSlotRefs.current.get(item.id) || {}
-                    bannerSlotRefs.current.set(item.id, { ...existing, slot: el })
-                  }
-                }}
-                className="banner-slot"
+                key={it.id}
+                className={`banner-slot ${it.empty ? "empty" : ""}`}
+                style={{ width: `${it.size}px`, marginRight: `${GAP}px` }}
               >
-                {!item.empty && (
+                {!it.empty && (
                   <img
-                    ref={(el) => {
-                      if (el) {
-                        const existing = bannerSlotRefs.current.get(item.id) || {}
-                        bannerSlotRefs.current.set(item.id, { ...existing, asset: el })
-                      }
-                    }}
-                    src={item.image}
+                    src={it.image}
                     alt=""
-                    className="banner-asset"
                     draggable={false}
-                    onMouseDown={(e) => handleDragStart(e, item, item.id)}
-                    onTouchStart={(e) => handleDragStart(e, item, item.id)}
+                    className="banner-asset"
+                    style={{ width: `${it.size}px`, height: `${it.size}px` }}
+                    onMouseDown={(e) => handleDragStart(e, it)}
+                    onTouchStart={(e) => handleDragStart(e, it)}
                   />
                 )}
+                {/* empty slots intentionally leave space */}
               </div>
             ))}
           </div>
         </div>
       </section>
     </main>
-  )
+  );
 }
-
-export default Home
-
-
