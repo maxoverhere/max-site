@@ -5,18 +5,17 @@ import motorbikeImage from "../../assets/images/Motorbike.png";
 import "./home.css";
 
 const ASSETS = [pearImage, shoeImage, motorbikeImage];
-const GAP = 24; // px space between slots
-const BASE_SIZE = 80; // base item size
-const SPEED = 0.6; // px per frame (adjust for overall scroll speed)
-const GRAVITY = 0.15; // px per frame^2 for flung items
+const GAP = 24;
+const BASE_SIZE = 80;
+const SPEED = 0.6;
+const GRAVITY = 0.15;
 
 function makeInitialItems(containerWidth = typeof window !== "undefined" ? window.innerWidth : 1200) {
-  // deterministic-ish sizes (no wild randomness)
   const items = [];
   let x = 0;
   let idx = 0;
   while (x < containerWidth + 300) {
-    const size = BASE_SIZE + (idx % 3) * 8; // small size variation
+    const size = BASE_SIZE + (idx % 3) * 8;
     items.push({
       id: `item-${idx}`,
       image: ASSETS[idx % ASSETS.length],
@@ -25,7 +24,6 @@ function makeInitialItems(containerWidth = typeof window !== "undefined" ? windo
     });
     x += size + GAP;
     idx += 1;
-    // cap just in case
     if (idx > 40) break;
   }
   return items;
@@ -33,33 +31,28 @@ function makeInitialItems(containerWidth = typeof window !== "undefined" ? windo
 
 export default function Home() {
   const [items, setItems] = useState(() => makeInitialItems());
-  const [flung, setFlung] = useState([]); // { id, image, size, x, y, vx, vy }
-  const [dragging, setDragging] = useState(null); // { id, image, size }
+  const [flung, setFlung] = useState([]);
+  const [dragging, setDragging] = useState(null);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
 
-  const offsetRef = useRef(0); // translateX offset (positive -> content moved left)
+  const offsetRef = useRef(0);
   const rafRef = useRef(null);
-  const lastMouseRef = useRef({ x: 0, y: 0, t: 0 });
   const trackRef = useRef(null);
   const itemsRef = useRef(items);
   const itemCounterRef = useRef(items.length);
+  const positionHistoryRef = useRef([]);
 
-  // keep itemsRef in sync with items state
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
 
-  // helper: compute width of a slot (size + gap)
   const slotWidth = (size) => size + GAP;
-
-  // --- ticker animation (infinite loop) ---
   useEffect(() => {
     function step() {
       offsetRef.current += SPEED;
 
       const currentItems = itemsRef.current;
       
-      // Remove items that have scrolled off the left side
       let removedWidth = 0;
       let currentX = 0;
       const itemsToRemove = [];
@@ -75,7 +68,6 @@ export default function Home() {
         currentX += itemWidth;
       });
 
-      // Remove off-screen items and adjust offset
       if (itemsToRemove.length > 0) {
         offsetRef.current -= removedWidth;
         setItems((prev) => {
@@ -85,14 +77,12 @@ export default function Home() {
         });
       }
 
-      // Calculate total width of remaining items
       const remainingItems = itemsRef.current;
       let totalWidth = 0;
       remainingItems.forEach((item) => {
         totalWidth += slotWidth(item.size);
       });
 
-      // Add new items if needed to fill the screen
       const lastItemRight = totalWidth + offsetRef.current;
       if (lastItemRight < window.innerWidth + 300) {
         const counter = itemCounterRef.current++;
@@ -109,20 +99,16 @@ export default function Home() {
         });
       }
 
-      // apply the transform
       if (trackRef.current) {
         trackRef.current.style.transform = `translateX(${-offsetRef.current}px)`;
       }
-
-      // update flung physics
       setFlung((prev) =>
         prev
           .map((f) => {
-          
             const newVy = f.vy + GRAVITY;
             const nx = f.x + f.vx;
             const ny = f.y + newVy;
-            return { ...f, x: nx, y: ny, vx: newVx, vy: newVy };
+            return { ...f, x: nx, y: ny, vx: f.vx, vy: newVy };
           })
           .filter(
             (f) =>
@@ -137,14 +123,19 @@ export default function Home() {
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  // --- pointer handling for drag / fling ---
   useEffect(() => {
     function onPointerMove(e) {
       if (!dragging) return;
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const now = performance.now();
-      lastMouseRef.current = { x: clientX, y: clientY, t: now };
+      
+      positionHistoryRef.current.push({ x: clientX, y: clientY, t: now });
+      
+      if (positionHistoryRef.current.length > 20) {
+        positionHistoryRef.current.shift();
+      }
+      
       setDragPos({ x: clientX, y: clientY });
     }
 
@@ -153,13 +144,37 @@ export default function Home() {
       const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
       const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
       const now = performance.now();
-      const last = lastMouseRef.current;
-      const dt = Math.max(1, now - (last.t || now));
-      // Calculate velocity in pixels per frame (assuming ~60fps, so dt is in ms)
-      const vx = ((clientX - (last.x || clientX)) / dt) * (1000 / 60);
-      const vy = ((clientY - (last.y || clientY)) / dt) * (1000 / 60);
+      
+      const history = positionHistoryRef.current;
+      const lookbackTime = 80;
+      const targetTime = now - lookbackTime;
+      
+      let vx = 0;
+      let vy = 0;
+      
+      let bestMatch = null;
+      let bestDiff = Infinity;
+      
+      for (let i = history.length - 1; i >= 0; i--) {
+        const diff = Math.abs(history[i].t - targetTime);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestMatch = history[i];
+        }
+        if (history[i].t < targetTime - 50) break;
+      }
+      
+      if (bestMatch) {
+        const dt = Math.max(1, now - bestMatch.t);
+        vx = ((clientX - bestMatch.x) / dt) * (1000 / 60);
+        vy = ((clientY - bestMatch.y) / dt) * (1000 / 60);
+      } else if (history.length > 0) {
+        const first = history[0];
+        const dt = Math.max(1, now - first.t);
+        vx = ((clientX - first.x) / dt) * (1000 / 60);
+        vy = ((clientY - first.y) / dt) * (1000 / 60);
+      }
 
-      // spawn flung item using pointer pos and velocity
       const flingItem = {
         id: `flung-${Date.now()}`,
         image: dragging.image,
@@ -173,6 +188,7 @@ export default function Home() {
 
       setDragging(null);
       setDragPos({ x: 0, y: 0 });
+      positionHistoryRef.current = [];
     }
 
     window.addEventListener("mousemove", onPointerMove);
@@ -188,23 +204,22 @@ export default function Home() {
     };
   }, [dragging]);
 
-  // start dragging
   const handleDragStart = (e, item) => {
     e.preventDefault();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    lastMouseRef.current = { x: clientX, y: clientY, t: performance.now() };
+    const now = performance.now();
+    
+    positionHistoryRef.current = [{ x: clientX, y: clientY, t: now }];
+    
     setDragging(item);
     setDragPos({ x: clientX, y: clientY });
-    // immediately mark the slot as empty
     setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, empty: true } : it)));
   };
 
-  // simple reset: if you want to repopulate removed slots you could implement that here
   const refillIfAllEmpty = () => {
     const haveAnyNonEmpty = items.some((it) => !it.empty);
     if (!haveAnyNonEmpty) {
-      // reset deterministic items
       setItems(makeInitialItems());
     }
   };
@@ -222,7 +237,6 @@ export default function Home() {
           Play with ideas, games, and projects — all in one place.
         </p>
 
-        {/* flung floating assets */}
         <div className="flung-layer">
           {flung.map((f) => (
             <img
@@ -240,7 +254,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* dragged image (follows cursor) */}
         {dragging && (
           <img
             src={dragging.image}
@@ -255,7 +268,6 @@ export default function Home() {
           />
         )}
 
-        {/* ticker */}
         <div className="banner-viewport">
           <div className="banner-track" ref={trackRef}>
             {items.map((it) => (
@@ -275,7 +287,6 @@ export default function Home() {
                     onTouchStart={(e) => handleDragStart(e, it)}
                   />
                 )}
-                {/* empty slots intentionally leave space */}
               </div>
             ))}
           </div>
