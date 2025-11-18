@@ -41,80 +41,33 @@ export default function Home() {
   const itemsRef = useRef(items);
   const itemCounterRef = useRef(items.length);
   const positionHistoryRef = useRef([]);
+  const lastItemSlotRef = useRef(null);
+
+  const handleDragStart = (e, item) => {
+    e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const now = performance.now();
+    
+    positionHistoryRef.current = [{ x: clientX, y: clientY, t: now }];
+    
+    setDragging(item);
+    setDragPos({ x: clientX, y: clientY });
+    setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, empty: true } : it)));
+  };
 
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
 
-  const slotWidth = (size) => size + GAP;
   useEffect(() => {
     function step() {
       offsetRef.current += SPEED;
 
-      const currentItems = itemsRef.current;
-      
-      let removedWidth = 0;
-      let currentX = 0;
-      const itemsToRemove = [];
-
-      currentItems.forEach((item) => {
-        const itemWidth = slotWidth(item.size);
-        const itemRight = currentX + offsetRef.current + item.size;
-
-        if (itemRight < -100) {
-          itemsToRemove.push(item.id);
-          removedWidth += itemWidth;
-        }
-        currentX += itemWidth;
-      });
-
-      if (itemsToRemove.length > 0) {
-        offsetRef.current -= removedWidth;
-        setItems((prev) => {
-          const filtered = prev.filter((it) => !itemsToRemove.includes(it.id));
-          itemsRef.current = filtered;
-          return filtered;
-        });
-      }
-
-      const remainingItems = itemsRef.current;
-      let totalWidth = 0;
-      remainingItems.forEach((item) => {
-        totalWidth += slotWidth(item.size);
-      });
-
-      const lastItemRight = totalWidth + offsetRef.current;
-      if (lastItemRight < window.innerWidth + 300) {
-        const counter = itemCounterRef.current++;
-        const newItem = {
-          id: `item-${counter}`,
-          image: ASSETS[counter % ASSETS.length],
-          size: BASE_SIZE + (counter % 3) * 8,
-          empty: false,
-        };
-        setItems((prev) => {
-          const updated = [...prev, newItem];
-          itemsRef.current = updated;
-          return updated;
-        });
-      }
-
-      if (trackRef.current) {
-        trackRef.current.style.transform = `translateX(${-offsetRef.current}px)`;
-      }
-      setFlung((prev) =>
-        prev
-          .map((f) => {
-            const newVy = f.vy + GRAVITY;
-            const nx = f.x + f.vx;
-            const ny = f.y + newVy;
-            return { ...f, x: nx, y: ny, vx: f.vx, vy: newVy };
-          })
-          .filter(
-            (f) =>
-              !(f.y > window.innerHeight + 200 || f.x < -200 || f.x > window.innerWidth + 200)
-          )
-      );
+      removeOffScreenItems();
+      addNewItemsIfNeeded();
+      updateBannerTransform();
+      updateFlungPhysics();
 
       rafRef.current = requestAnimationFrame(step);
     }
@@ -129,13 +82,13 @@ export default function Home() {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const now = performance.now();
-      
+
       positionHistoryRef.current.push({ x: clientX, y: clientY, t: now });
-      
+
       if (positionHistoryRef.current.length > 20) {
         positionHistoryRef.current.shift();
       }
-      
+
       setDragPos({ x: clientX, y: clientY });
     }
 
@@ -144,36 +97,8 @@ export default function Home() {
       const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
       const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
       const now = performance.now();
-      
-      const history = positionHistoryRef.current;
-      const lookbackTime = 80;
-      const targetTime = now - lookbackTime;
-      
-      let vx = 0;
-      let vy = 0;
-      
-      let bestMatch = null;
-      let bestDiff = Infinity;
-      
-      for (let i = history.length - 1; i >= 0; i--) {
-        const diff = Math.abs(history[i].t - targetTime);
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestMatch = history[i];
-        }
-        if (history[i].t < targetTime - 50) break;
-      }
-      
-      if (bestMatch) {
-        const dt = Math.max(1, now - bestMatch.t);
-        vx = ((clientX - bestMatch.x) / dt) * (1000 / 60);
-        vy = ((clientY - bestMatch.y) / dt) * (1000 / 60);
-      } else if (history.length > 0) {
-        const first = history[0];
-        const dt = Math.max(1, now - first.t);
-        vx = ((clientX - first.x) / dt) * (1000 / 60);
-        vy = ((clientY - first.y) / dt) * (1000 / 60);
-      }
+
+      const { vx, vy } = calculateVelocity(clientX, clientY, now);
 
       const flingItem = {
         id: `flung-${Date.now()}`,
@@ -204,30 +129,124 @@ export default function Home() {
     };
   }, [dragging]);
 
-  const handleDragStart = (e, item) => {
-    e.preventDefault();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const now = performance.now();
-    
-    positionHistoryRef.current = [{ x: clientX, y: clientY, t: now }];
-    
-    setDragging(item);
-    setDragPos({ x: clientX, y: clientY });
-    setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, empty: true } : it)));
+  const slotWidth = (size) => size + GAP;
+
+  const removeOffScreenItems = () => {
+    const currentItems = itemsRef.current;
+    let removedWidth = 0;
+    let currentX = 0;
+    const itemsToRemove = [];
+
+    currentItems.forEach((item) => {
+      const itemWidth = slotWidth(item.size);
+      const itemRight = currentX + offsetRef.current + item.size;
+
+      if (itemRight < -100) {
+        itemsToRemove.push(item.id);
+        removedWidth += itemWidth;
+      }
+      currentX += itemWidth;
+    });
+
+    if (itemsToRemove.length > 0) {
+      offsetRef.current -= removedWidth;
+      setItems((prev) => {
+        const filtered = prev.filter((it) => !itemsToRemove.includes(it.id));
+        itemsRef.current = filtered;
+        return filtered;
+      });
+      return true;
+    }
+    return false;
   };
 
-  const refillIfAllEmpty = () => {
-    const haveAnyNonEmpty = items.some((it) => !it.empty);
-    if (!haveAnyNonEmpty) {
-      setItems(makeInitialItems());
+  const calculateTotalWidth = (itemsList) => {
+    let total = 0;
+    itemsList.forEach((item) => {
+      total += slotWidth(item.size);
+    });
+    return total;
+  };
+
+  const createNewItem = () => {
+    const counter = itemCounterRef.current++;
+    return {
+      id: `item-${counter}`,
+      image: ASSETS[counter % ASSETS.length],
+      size: BASE_SIZE + (counter % 3) * 8,
+      empty: false,
+    };
+  };
+
+  const addNewItemsIfNeeded = () => {
+    const rect = lastItemSlotRef.current.getBoundingClientRect();
+    const lastItemRightOnScreen = rect.right;
+    const threshold = window.innerWidth + 300;
+
+    if (lastItemRightOnScreen < threshold) {
+      const newItem = createNewItem();
+      setItems((prev) => {
+        const updated = [...prev, newItem];
+        itemsRef.current = updated;
+        return updated;
+      });
     }
   };
 
-  useEffect(() => {
-    refillIfAllEmpty();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  const updateFlungPhysics = () => {
+    setFlung((prev) =>
+      prev
+        .map((f) => {
+          const newVy = f.vy + GRAVITY;
+          const nx = f.x + f.vx;
+          const ny = f.y + newVy;
+          return { ...f, x: nx, y: ny, vx: f.vx, vy: newVy };
+        })
+        .filter(
+          (f) =>
+            !(f.y > window.innerHeight + 200 || f.x < -200 || f.x > window.innerWidth + 200)
+        )
+    );
+  };
+
+  const updateBannerTransform = () => {
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translateX(${-offsetRef.current}px)`;
+    }
+  };
+
+  const calculateVelocity = (currentX, currentY, currentTime) => {
+    const history = positionHistoryRef.current;
+    const lookbackTime = 80;
+    const targetTime = currentTime - lookbackTime;
+
+    let bestMatch = null;
+    let bestDiff = Infinity;
+
+    for (let i = history.length - 1; i >= 0; i--) {
+      const diff = Math.abs(history[i].t - targetTime);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestMatch = history[i];
+      }
+      if (history[i].t < targetTime - 50) break;
+    }
+
+    if (bestMatch) {
+      const dt = Math.max(1, currentTime - bestMatch.t);
+      const vx = ((currentX - bestMatch.x) / dt) * (1000 / 60);
+      const vy = ((currentY - bestMatch.y) / dt) * (1000 / 60);
+      return { vx, vy };
+    } else if (history.length > 0) {
+      const first = history[0];
+      const dt = Math.max(1, currentTime - first.t);
+      const vx = ((currentX - first.x) / dt) * (1000 / 60);
+      const vy = ((currentY - first.y) / dt) * (1000 / 60);
+      return { vx, vy };
+    }
+
+    return { vx: 0, vy: 0 };
+  };
 
   return (
     <main className="page page--home">
@@ -270,9 +289,10 @@ export default function Home() {
 
         <div className="banner-viewport">
           <div className="banner-track" ref={trackRef}>
-            {items.map((it) => (
+            {items.map((it, index) => (
               <div
                 key={it.id}
+                ref={index === items.length - 1 ? lastItemSlotRef : null}
                 className={`banner-slot ${it.empty ? "empty" : ""}`}
                 style={{ width: `${it.size}px`, marginRight: `${GAP}px` }}
               >
