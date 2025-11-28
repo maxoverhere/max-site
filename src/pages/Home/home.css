@@ -28,6 +28,8 @@ body:has(.page--home) {
 
 .flung-asset {
   position: absolute;
+  left: 0;
+  top: 0;
   pointer-events: none;
   user-select: none;
   will-change: transform;
@@ -35,6 +37,8 @@ body:has(.page--home) {
 
 .dragged-asset {
   position: fixed;
+  left: 0;
+  top: 0;
   pointer-events: none;
   user-select: none;
   z-index: 1000;

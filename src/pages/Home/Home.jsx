@@ -42,23 +42,37 @@ export default function Home() {
   const itemCounterRef = useRef(items.length);
   const positionHistoryRef = useRef([]);
   const lastItemSlotRef = useRef(null);
+  const draggingRef = useRef(null);
+  const draggedElementRef = useRef(null);
+  const captureTargetRef = useRef(null);
+  const flungRef = useRef([]);
 
-  const handleDragStart = (e, item) => {
+  const handlePointerDown = (e, item) => {
     e.preventDefault();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    e.stopPropagation();
+    
+    const target = e.currentTarget;
+    if (target.setPointerCapture) {
+      target.setPointerCapture(e.pointerId);
+      captureTargetRef.current = target;
+    }
+    
     const now = performance.now();
+    positionHistoryRef.current = [{ x: e.clientX, y: e.clientY, t: now }];
     
-    positionHistoryRef.current = [{ x: clientX, y: clientY, t: now }];
-    
+    draggingRef.current = item;
     setDragging(item);
-    setDragPos({ x: clientX, y: clientY });
+    setDragPos({ x: e.clientX, y: e.clientY });
     setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, empty: true } : it)));
   };
 
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  useEffect(() => {
+    flungRef.current = flung;
+  }, [flung]);
 
   useEffect(() => {
     function step() {
@@ -78,56 +92,65 @@ export default function Home() {
 
   useEffect(() => {
     function onPointerMove(e) {
-      if (!dragging) return;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const currentDragging = draggingRef.current;
+      if (!currentDragging) return;
+      
+      e.preventDefault();
       const now = performance.now();
 
-      positionHistoryRef.current.push({ x: clientX, y: clientY, t: now });
+      positionHistoryRef.current.push({ x: e.clientX, y: e.clientY, t: now });
 
       if (positionHistoryRef.current.length > 20) {
         positionHistoryRef.current.shift();
       }
 
-      setDragPos({ x: clientX, y: clientY });
+      if (draggedElementRef.current) {
+        const size = currentDragging.size;
+        draggedElementRef.current.style.transform = `translate(${e.clientX - size / 2}px, ${e.clientY - size / 2}px)`;
+      }
     }
 
     function onPointerUp(e) {
-      if (!dragging) return;
-      const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-      const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      const currentDragging = draggingRef.current;
+      if (!currentDragging) return;
+      
+      e.preventDefault();
       const now = performance.now();
 
-      const { vx, vy } = calculateVelocity(clientX, clientY, now);
+      const { vx, vy } = calculateVelocity(e.clientX, e.clientY, now);
 
       const flingItem = {
         id: `flung-${Date.now()}`,
-        image: dragging.image,
-        size: dragging.size,
-        x: clientX,
-        y: clientY,
+        image: currentDragging.image,
+        size: currentDragging.size,
+        x: e.clientX,
+        y: e.clientY,
         vx: vx * 1.6,
         vy: vy * 1.2,
       };
       setFlung((prev) => [...prev, flingItem]);
 
+      draggingRef.current = null;
       setDragging(null);
       setDragPos({ x: 0, y: 0 });
       positionHistoryRef.current = [];
+      
+      if (captureTargetRef.current?.releasePointerCapture) {
+        captureTargetRef.current.releasePointerCapture(e.pointerId);
+        captureTargetRef.current = null;
+      }
     }
 
-    window.addEventListener("mousemove", onPointerMove);
-    window.addEventListener("mouseup", onPointerUp);
-    window.addEventListener("touchmove", onPointerMove, { passive: false });
-    window.addEventListener("touchend", onPointerUp);
+    document.addEventListener("pointermove", onPointerMove, { passive: false });
+    document.addEventListener("pointerup", onPointerUp, { passive: false });
+    document.addEventListener("pointercancel", onPointerUp, { passive: false });
 
     return () => {
-      window.removeEventListener("mousemove", onPointerMove);
-      window.removeEventListener("mouseup", onPointerUp);
-      window.removeEventListener("touchmove", onPointerMove);
-      window.removeEventListener("touchend", onPointerUp);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [dragging]);
+  }, []);
 
   const slotWidth = (size) => size + GAP;
 
@@ -160,14 +183,6 @@ export default function Home() {
     return false;
   };
 
-  const calculateTotalWidth = (itemsList) => {
-    let total = 0;
-    itemsList.forEach((item) => {
-      total += slotWidth(item.size);
-    });
-    return total;
-  };
-
   const createNewItem = () => {
     const counter = itemCounterRef.current++;
     return {
@@ -179,6 +194,7 @@ export default function Home() {
   };
 
   const addNewItemsIfNeeded = () => {
+    if (!lastItemSlotRef.current) return;
     const rect = lastItemSlotRef.current.getBoundingClientRect();
     const lastItemRightOnScreen = rect.right;
     const threshold = window.innerWidth + 300;
@@ -194,19 +210,22 @@ export default function Home() {
   };
 
   const updateFlungPhysics = () => {
-    setFlung((prev) =>
-      prev
-        .map((f) => {
-          const newVy = f.vy + GRAVITY;
-          const nx = f.x + f.vx;
-          const ny = f.y + newVy;
-          return { ...f, x: nx, y: ny, vx: f.vx, vy: newVy };
-        })
-        .filter(
-          (f) =>
-            !(f.y > window.innerHeight + 200 || f.x < -200 || f.x > window.innerWidth + 200)
-        )
-    );
+    const currentFlung = flungRef.current;
+    if (currentFlung.length === 0) return;
+    
+    const updated = currentFlung
+      .map((f) => {
+        const newVy = f.vy + GRAVITY;
+        const nx = f.x + f.vx;
+        const ny = f.y + newVy;
+        return { ...f, x: nx, y: ny, vx: f.vx, vy: newVy };
+      })
+      .filter(
+        (f) =>
+          !(f.y > window.innerHeight + 200 || f.x < -200 || f.x > window.innerWidth + 200)
+      );
+    
+    setFlung(updated);
   };
 
   const updateBannerTransform = () => {
@@ -266,8 +285,7 @@ export default function Home() {
               style={{
                 width: `${f.size}px`,
                 height: `${f.size}px`,
-                left: `${f.x - f.size / 2}px`,
-                top: `${f.y - f.size / 2}px`,
+                transform: `translate(${f.x - f.size / 2}px, ${f.y - f.size / 2}px)`,
               }}
             />
           ))}
@@ -275,14 +293,14 @@ export default function Home() {
 
         {dragging && (
           <img
+            ref={draggedElementRef}
             src={dragging.image}
             alt=""
             className="dragged-asset"
             style={{
               width: `${dragging.size}px`,
               height: `${dragging.size}px`,
-              left: `${dragPos.x - dragging.size / 2}px`,
-              top: `${dragPos.y - dragging.size / 2}px`,
+              transform: `translate(${dragPos.x - dragging.size / 2}px, ${dragPos.y - dragging.size / 2}px)`,
             }}
           />
         )}
@@ -303,8 +321,7 @@ export default function Home() {
                     draggable={false}
                     className="banner-asset"
                     style={{ width: `${it.size}px`, height: `${it.size}px` }}
-                    onMouseDown={(e) => handleDragStart(e, it)}
-                    onTouchStart={(e) => handleDragStart(e, it)}
+                    onPointerDown={(e) => handlePointerDown(e, it)}
                   />
                 )}
               </div>
