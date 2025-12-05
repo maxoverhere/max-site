@@ -171,16 +171,14 @@ export default function Home() {
       currentX += itemWidth;
     });
 
-    if (itemsToRemove.length > 0) {
-      offsetRef.current -= removedWidth;
-      setItems((prev) => {
-        const filtered = prev.filter((it) => !itemsToRemove.includes(it.id));
-        itemsRef.current = filtered;
-        return filtered;
-      });
-      return true;
-    }
-    return false;
+      if (itemsToRemove.length > 0) {
+        offsetRef.current -= removedWidth;
+        setItems((prev) => {
+          const filtered = prev.filter((it) => !itemsToRemove.includes(it.id));
+          itemsRef.current = filtered;
+          return filtered;
+        });
+      }
   };
 
   const createNewItem = () => {
