@@ -1,7 +1,22 @@
-import { Link, NavLink } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import './navbar.css'
 
 function Navbar() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+    }
+    
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToTop)
+    })
+  }, [pathname])
+
   return (
     <header className="navbar">
       <div className="navbar__inner">
